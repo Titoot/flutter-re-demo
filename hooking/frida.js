@@ -1,10 +1,10 @@
-//frida -Uf com.example.bindiff_database -l frida.js
+//frida -U -f <package> -l frida.js --no-pause
 
 function hookFunc() {
 
-    var dumpOffset = '0xe91b4' // code offset
+    var dumpOffset = '0x256110' // code offset
 
-    var argBufferSize = 550
+    var argBufferSize = 150
 
     var address = Module.findBaseAddress('libapp.so') // libapp.so (Android) or App (IOS) 
     console.log('\n\nbaseAddress: ' + address.toString())
@@ -24,12 +24,24 @@ function hookFunc() {
             console.log('--------------------------------------------|')
             console.log('')
 
-            console.log(args[0].readCString())
+            /*    Null Encrypted_get:base64() => return args[0]
+                  Null AES_decrypt() => arg[1], return args[0]
+            */
+
+            for (var argStep = 0; argStep < 50; argStep++) {
+                try {
+                    dumpArgs(argStep, args[argStep], argBufferSize);
+                } catch (e) {
+
+                    break;
+                }
+
+            }
 
         },
         onLeave: function(retval) {
             console.log('RETURN : ' + retval)
-            //dumpArgs(0, retval, 150);
+            dumpArgs(0, retval, 850);
         }
     });
 
