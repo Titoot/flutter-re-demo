@@ -47,7 +47,6 @@ def create_ida_folders(code_info: CodeInfo):
                 if func_name == k:
                     func_name = v
             func_name = func_name.replace(":", "::")
-            breakpoint()
             full_func_name = f"{class_name}::{func_name}" if class_info.name is not None else func_name
 
             ida_funcs.add_func(func_offset, idc.BADADDR)
