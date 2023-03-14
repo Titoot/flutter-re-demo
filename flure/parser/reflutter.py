@@ -1,7 +1,11 @@
+import re
 from flure.code_info import CodeInfo, ClassInfo, FunctionInfo
 
 CLASS_TOKEN = b"class "
 FUNCTION_TOKEN = b"    "
+#    _Uint8ArrayView@7027147 _Uint8ArrayView@7027147._@7027147(DynamicType, _TypedList@7027147, int, int) {
+FUNCTION_REGEX = r"\s{4}(.+?)\s(.+?)\((.+?|)\)\s{"
+OFFSET_REGEX = r"\s{8}.+?(\w*)\\r\\n"
 KNOWN_PREFIXES_IGNORED = [b"Random ", b"Map<Object, ", b"Class: ", b"dynamic ", b'', b'}']
 
 
@@ -29,10 +33,10 @@ class ReFlutterDumpParser(object):
         while cur_line_index < len(lines):
             if lines[cur_line_index].startswith(CLASS_TOKEN):
                 return class_info, cur_line_index
-            elif lines[cur_line_index].startswith(FUNCTION_TOKEN):
-                func_info = self.parse_function_lines(lines[cur_line_index:cur_line_index + 5])
+            elif re.search(FUNCTION_REGEX,str(lines[cur_line_index])):
+                func_info = self.parse_function_lines(lines[cur_line_index:cur_line_index + 4])
                 class_info.add_function(func_info)
-                cur_line_index += 5
+                cur_line_index += 4
             else:
                 prefix_found = False
                 for known_ignored_prefix in KNOWN_PREFIXES_IGNORED:
@@ -51,19 +55,23 @@ class ReFlutterDumpParser(object):
         class_name = line.split(b" ")[1].decode("ascii")
         #class_full_declaration = line.split(b"'")[2].strip()
         #if not class_full_declaration.startswith(CLASS_TOKEN):
-        return ClassInfo(None, class_name, None)
+        return ClassInfo(":", class_name, None)
         #class_name = class_full_declaration[len(CLASS_TOKEN):].split(b" ")[0].decode("ascii")
         #return ClassInfo(module_path, class_name, class_full_declaration[:-1].decode("ascii"))
 
     @staticmethod
     def parse_function_lines(func_lines):
-        if (func_lines[2].strip() != b'}') or (func_lines[3] != b'\r\n'):
+        if (func_lines[2].strip() != b'}') or not (func_lines[3] != b'}\r\n' or func_lines[3] != b'\r\n'):
             raise Exception(f"Invalid lines while parsing function declaration line: '{func_lines}'")
-        # Function 'get:_instantiator_type_arguments@0150898': getter. (_Closure@0150898) => dynamic
-        func_info = func_lines[0].strip()[:-1]
-        func_name = func_info.split(b" ")[0].decode("ascii")
-        func_signature = func_info.split(b"'")[2][1:].decode("ascii")
-        # Code Offset: _kDartIsolateSnapshotInstructions + 0x00000000002ebfb0
-        func_offset = func_lines[2].strip().split(b"+")[1].strip()
-        func_relative_base = func_lines[2].strip().split(b"+")[0].split(b":")[1].strip().decode("ascii")
-        return FunctionInfo(func_name, func_signature, int(func_offset, 16), func_relative_base)
+
+        # _Uint8ArrayView@7027147 _Uint8ArrayView@7027147._@7027147(DynamicType, _TypedList@7027147, int, int)
+        func_info = re.search(FUNCTION_REGEX,str(func_lines[0]))
+        func_returnType = func_info.group(1)
+        func_name = func_info.group(2)
+        #func_signature = func_info.group(3)
+        func_args = func_info.group(3)
+        # Code at absolute offset: 0x2ba4c0
+        offset_info = re.search(OFFSET_REGEX, str(func_lines[1]))
+        func_offset = offset_info.group(1)
+        #func_relative_base = func_lines[2].strip().split(b"+")[0].split(b":")[1].strip().decode("ascii")
+        return FunctionInfo(func_returnType, func_name, int(func_offset, 16))

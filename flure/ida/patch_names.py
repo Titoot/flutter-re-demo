@@ -42,14 +42,12 @@ def create_ida_folders(code_info: CodeInfo):
         class_name = class_info.name
         for func_info in class_info.functions:
             func_name = func_info.name
-            if func_info.relative_base != 0:
-                func_offset = func_info.offset + exported_entries[func_info.relative_base]
-            else:
-                func_offset = func_info.offset
+            func_offset = func_info.offset
             for k, v in SMALL_FUNC_MAPPING.items():
                 if func_name == k:
                     func_name = v
             func_name = func_name.replace(":", "::")
+            breakpoint()
             full_func_name = f"{class_name}::{func_name}" if class_info.name is not None else func_name
 
             ida_funcs.add_func(func_offset, idc.BADADDR)

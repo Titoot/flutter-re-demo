@@ -1,22 +1,20 @@
 
 class FunctionInfo(object):
-    def __init__(self, name, signature, offset, relative_base):
+    def __init__(self, returnType, name, offset):
+        self.returnType = returnType
         self.name = name
-        self.signature = signature
         self.offset = offset
-        self.relative_base = relative_base
 
     @staticmethod
     def load(func_info_dict):
-        return FunctionInfo(func_info_dict["name"], func_info_dict["signature"],
-                            func_info_dict["offset"], func_info_dict["relative_base"])
+        return FunctionInfo(func_info_dict["returnType"], func_info_dict["name"],
+                            func_info_dict["offset"])
 
     def dump(self):
         return {
+            "returnType": self.returnType,
             "name": self.name,
-            "signature": self.signature,
             "offset": self.offset,
-            "relative_base": self.relative_base,
         }
 
 
